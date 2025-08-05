@@ -1,32 +1,470 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>运营安排主播计数系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <!-- Tailwind配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#4338CA', // 深靛蓝色
+            secondary: '#EC4899', // 亮粉色
+            accent: '#8B5CF6', // 紫色点缀
+            neutral: '#1E293B',
+            light: '#F8FAFC'
+          },
+          fontFamily: {
+            inter: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          boxShadow: {
+            'glow': '0 0 15px rgba(139, 92, 246, 0.4)',
+            'hover': '0 10px 25px -5px rgba(67, 56, 202, 0.1), 0 8px 10px -6px rgba(67, 56, 202, 0.1)',
+          }
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .card-hover {
+        @apply transition-all duration-300 hover:shadow-hover hover:-translate-y-1;
+      }
+      .current-highlight {
+        @apply border-primary bg-indigo-50 shadow-glow;
+      }
+      .gradient-bg {
+        @apply bg-gradient-to-br from-primary/5 to-accent/5;
+      }
+      .text-gradient {
+        @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+      }
+      .pulse-soft {
+        animation: pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      .pulse-strong {
+        animation: pulseStrong 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      .slide-up {
+        animation: slideUp 0.4s ease-out forwards;
+      }
+      .slide-down {
+        animation: slideDown 0.3s ease-in forwards;
+      }
+      .fade-in {
+        animation: fadeIn 0.4s ease-out forwards;
+      }
+      .scale-in {
+        animation: scaleIn 0.3s ease-out forwards;
+      }
+      .bounce-light {
+        animation: bounceLight 0.6s ease-out;
+      }
+      .count-badge {
+        position: relative;
+      }
+      .count-badge::after {
+        content: '';
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 10px;
+        height: 10px;
+        background-color: theme('colors.secondary');
+        border-radius: 50%;
+        transform: scale(0);
+        transition: transform 0.2s ease-out;
+      }
+      .count-badge.updated::after {
+        transform: scale(1);
+        animation: pulseDot 1s ease-out;
+      }
+    }
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
-            <form class="row" id="greet-form">
-                <input id="inputValue" placeholder="Enter a something..." />
-            </form>
-            <div class="resultBox">
-                <span>result: </span>
-                <span id="result"></span>
+    @keyframes pulseSoft {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+    @keyframes pulseStrong {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes slideDown {
+      from { transform: translateY(0); opacity: 1; }
+      to { transform: translateY(20px); opacity: 0; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes scaleIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    @keyframes bounceLight {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    @keyframes pulseDot {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(0); }
+    }
+  </style>
+</head>
+<body class="gradient-bg font-inter min-h-screen text-neutral">
+  <div class="container mx-auto px-4 py-8 max-w-3xl">
+    <!-- 标题区域 -->
+    <header class="text-center mb-8 slide-up opacity-0" style="animation-delay: 0.1s;">
+      <div class="inline-block p-3 bg-primary/10 rounded-full mb-4 pulse-soft">
+        <i class="fa fa-refresh text-2xl text-gradient"></i>
+      </div>
+      <h1 class="text-[clamp(1.8rem,5vw,2.5rem)] font-bold mb-2 text-gradient">安排运营数</h1>
+      <p class="text-gray-500 max-w-md mx-auto">高效管理运营轮班顺序，自动记录次数，让主播安排更流畅</p>
+    </header>
+    
+    <!-- 主内容区 -->
+    <main class="space-y-8">
+      <!-- 当前轮班运营显示 -->
+      <section class="bg-white rounded-2xl p-6 shadow-lg card-hover slide-up opacity-0" style="animation-delay: 0.2s;">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+          <i class="fa fa-user-circle text-primary mr-2"></i>当前运营
+        </h2>
+        <div id="current-person" class="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl">
+          <p class="text-gray-400">请添加运营开始安排</p>
+        </div>
+      </section>
+      
+      <!-- 轮班控制按钮 -->
+      <section class="text-center slide-up opacity-0" style="animation-delay: 0.3s;">
+        <button id="next-btn" class="bg-secondary hover:bg-secondary/90 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center mx-auto group" disabled>
+          <i class="fa fa-forward mr-2 group-hover:translate-x-1 transition-transform"></i>
+          轮到下一位
+        </button>
+      </section>
+      
+      <!-- 运营列表和计数 -->
+      <section class="bg-white rounded-2xl p-6 shadow-lg card-hover slide-up opacity-0" style="animation-delay: 0.4s;">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold text-gray-700 flex items-center">
+            <i class="fa fa-list text-primary mr-2"></i>运营列表
+          </h2>
+          <div class="flex items-center space-x-2">
+            <span class="text-sm text-gray-500" id="total-count">总主播安排数: 0</span>
+            <button id="clear-all" class="text-sm text-red-500 hover:text-red-600 flex items-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:underline" disabled>
+              <i class="fa fa-trash-o mr-1"></i> 清空
+            </button>
+          </div>
+        </div>
+        
+        <!-- 添加运营表单 -->
+        <div class="flex mb-6">
+          <input type="text" id="new-person" placeholder="输入运营姓名" class="flex-1 px-4 py-3 border border-gray-300 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200">
+          <button id="add-btn" class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-r-xl transition-all duration-200 hover:shadow-glow flex items-center">
+            <i class="fa fa-plus mr-1"></i> 添加
+          </button>
+        </div>
+        
+        <!-- 运营列表 -->
+        <div id="people-list" class="space-y-3 max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+          <div class="text-center text-gray-400 py-8 border border-dashed border-gray-200 rounded-xl">
+            暂无运营，请添加
+          </div>
+        </div>
+      </section>
+    </main>
+    
+    <!-- 页脚 -->
+    <footer class="mt-12 text-center text-gray-500 text-sm slide-up opacity-0" style="animation-delay: 0.5s;">
+      <p>数据自动保存在本地，刷新不丢失 <i class="fa fa-shield text-primary/70 ml-1"></i></p>
+    </footer>
+  </div>
+
+  <script>
+    // 运营安排管理核心类
+    class ShiftManager {
+      constructor() {
+        // 初始化数据
+        this.people = [];
+        this.currentIndex = -1;
+        this.storageKey = 'shiftManagerData';
+        
+        // 绑定DOM元素
+        this.bindElements();
+        
+        // 加载本地数据
+        this.loadFromLocalStorage();
+        
+        // 绑定事件
+        this.bindEvents();
+        
+        // 初始化界面
+        this.updateUI();
+      }
+      
+      // 绑定DOM元素
+      bindElements() {
+        this.currentPersonEl = document.getElementById('current-person');
+        this.peopleListEl = document.getElementById('people-list');
+        this.nextBtn = document.getElementById('next-btn');
+        this.addBtn = document.getElementById('add-btn');
+        this.newPersonInput = document.getElementById('new-person');
+        this.totalCountEl = document.getElementById('total-count');
+        this.clearAllBtn = document.getElementById('clear-all');
+      }
+      
+      // 绑定事件
+      bindEvents() {
+        // 下一位按钮
+        this.nextBtn.addEventListener('click', () => this.nextPerson());
+        
+        // 添加运营
+        this.addBtn.addEventListener('click', () => this.addPerson());
+        this.newPersonInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') this.addPerson();
+        });
+        
+        // 清空所有数据
+        this.clearAllBtn.addEventListener('click', () => this.clearAllData());
+      }
+      
+      // 加载本地存储数据
+      loadFromLocalStorage() {
+        const savedData = localStorage.getItem(this.storageKey);
+        if (savedData) {
+          const { people, currentIndex } = JSON.parse(savedData);
+          this.people = people || [];
+          this.currentIndex = currentIndex !== undefined ? currentIndex : -1;
+        }
+      }
+      
+      // 保存数据到本地存储
+      saveToLocalStorage() {
+        const data = {
+          people: this.people,
+          currentIndex: this.currentIndex
+        };
+        localStorage.setItem(this.storageKey, JSON.stringify(data));
+      }
+      
+      // 轮班到下一位运营
+      nextPerson() {
+        if (this.people.length === 0) return;
+        
+        // 记录当前运营索引用于动画
+        const prevIndex = this.currentIndex;
+        
+        // 更新当前运营计数
+        this.people[this.currentIndex].count++;
+        
+        // 计算下一个索引
+        this.currentIndex = (this.currentIndex + 1) % this.people.length;
+        
+        // 更新界面和存储
+        this.updatePeopleList(prevIndex);
+        this.updateCurrentPerson(true);
+        this.saveToLocalStorage();
+        
+        // 按钮动画
+        this.nextBtn.classList.add('scale-95');
+        setTimeout(() => this.nextBtn.classList.remove('scale-95'), 150);
+      }
+      
+      // 添加新运营
+      addPerson() {
+        const name = this.newPersonInput.value.trim();
+        if (!name) return;
+        
+        // 检查是否已存在同名运营
+        if (this.people.some(p => p.name === name)) {
+          // 抖动动画提示
+          this.newPersonInput.classList.add('border-red-500');
+          setTimeout(() => this.newPersonInput.classList.remove('border-red-500'), 300);
+          this.newPersonInput.classList.add('animate-shake');
+          setTimeout(() => this.newPersonInput.classList.remove('animate-shake'), 500);
+          return;
+        }
+        
+        this.people.push({ name, count: 0 });
+        
+        // 如果是第一个运营，设置为当前运营
+        if (this.people.length === 1) {
+          this.currentIndex = 0;
+        }
+        
+        // 清空输入框并添加动画
+        this.newPersonInput.value = '';
+        this.newPersonInput.focus();
+        this.newPersonInput.classList.add('border-green-500');
+        setTimeout(() => this.newPersonInput.classList.remove('border-green-500'), 500);
+        
+        // 更新界面和存储
+        this.updateUI();
+        this.saveToLocalStorage();
+      }
+      
+      // 删除指定运营
+      removePerson(index) {
+        // 添加删除动画
+        const item = this.peopleListEl.children[index];
+        if (item) {
+          item.classList.add('slide-down');
+          setTimeout(() => {
+            this.people.splice(index, 1);
+            
+            // 调整当前索引
+            if (this.people.length === 0) {
+              this.currentIndex = -1;
+            } else if (index === this.currentIndex) {
+              this.currentIndex = this.currentIndex % this.people.length;
+            } else if (index < this.currentIndex) {
+              this.currentIndex--;
+            }
+            
+            // 更新界面和存储
+            this.updateUI();
+            this.saveToLocalStorage();
+          }, 300);
+        }
+      }
+      
+      // 清空所有数据
+      clearAllData() {
+        if (this.people.length === 0) return;
+        
+        if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+          // 添加淡出动画
+          const sections = document.querySelectorAll('section');
+          sections.forEach(section => {
+            section.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+          });
+          
+          setTimeout(() => {
+            this.people = [];
+            this.currentIndex = -1;
+            this.updateUI();
+            this.saveToLocalStorage();
+            
+            // 淡入动画
+            setTimeout(() => {
+              sections.forEach(section => {
+                section.classList.remove('opacity-0');
+              });
+            }, 100);
+          }, 300);
+        }
+      }
+      
+      // 更新当前轮班运营显示
+      updateCurrentPerson(animate = false) {
+        if (this.people.length === 0) {
+          this.currentPersonEl.innerHTML = '<p class="text-gray-400">请添加主播开始安排</p>';
+          return;
+        }
+        
+        const person = this.people[this.currentIndex];
+        const content = `
+          <div class="pulse-strong">
+            <h3 class="text-2xl md:text-3xl font-bold text-neutral mb-2">${person.name}</h3>
+            <p class="text-gray-500 editing-breathing-bg">已轮到 <span class="text-primary font-semibold count-badge ${animate ? 'updated' : ''}">${person.count}</span> 次</p>
+          </div>
+        `;
+        
+        if (animate) {
+          // 添加切换动画
+          this.currentPersonEl.classList.add('opacity-0', 'transition-opacity', 'duration-200');
+          setTimeout(() => {
+            this.currentPersonEl.innerHTML = content;
+            this.currentPersonEl.classList.remove('opacity-0');
+            this.currentPersonEl.classList.add('bounce-light');
+          }, 200);
+        } else {
+          this.currentPersonEl.innerHTML = content;
+        }
+      }
+      
+      // 更新运营列表显示
+      updatePeopleList(prevIndex = -1) {
+        if (this.people.length === 0) {
+          this.peopleListEl.innerHTML = '<div class="text-center text-gray-400 py-8 border border-dashed border-gray-200 rounded-xl">暂无运营，请添加</div>';
+          this.nextBtn.disabled = true;
+          this.clearAllBtn.disabled = true;
+          this.totalCountEl.textContent = '总人数: 0';
+          return;
+        }
+        
+        this.peopleListEl.innerHTML = '';
+        this.people.forEach((person, index) => {
+          const isCurrent = index === this.currentIndex;
+          const isUpdated = index === prevIndex;
+          
+          const personEl = document.createElement('div');
+          personEl.className = `flex justify-between items-center p-3 rounded-xl border ${isCurrent ? 'current-highlight' : 'border-gray-200 hover:border-primary/30 hover:bg-gray-50'} scale-in`;
+          personEl.style.animationDelay = `${index * 50}ms`;
+          
+          personEl.innerHTML = `
+            <div class="flex items-center">
+              ${isCurrent ? '<i class="fa fa-check-circle text-primary mr-2"></i>' : ''}
+              <span class="${isCurrent ? 'font-semibold text-primary' : 'text-gray-700'}">${person.name}</span>
             </div>
-            <div class="invokeBox">
-                <button id="openUrl">open_url_browser</button>
-                <button id="openUrlNew">open_url_new</button>
-                <button id="runCommand">run_command</button>
-                <button id="downloadFile">download_file</button>
-                <button id="getExeDir">get_exe_dir</button>
-                <button id="getEnvVar">get_env_var</button>
-                <button id="findPort">find_port</button>
+            <div class="flex items-center space-x-4">
+              <span class="text-sm ${isUpdated ? 'text-secondary font-medium count-badge updated' : 'text-gray-500'}">
+                次数: <span>${person.count}</span>
+              </span>
+              <button class="delete-btn text-gray-400 hover:text-red-500 transition-colors duration-200 p-1 hover:bg-red-50 rounded-full" data-index="${index}">
+                <i class="fa fa-trash"></i>
+              </button>
             </div>
-        </main>
-    </body>
+          `;
+          this.peopleListEl.appendChild(personEl);
+        });
+        
+        // 绑定删除按钮事件
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const index = parseInt(e.currentTarget.dataset.index);
+            this.removePerson(index);
+          });
+        });
+        
+        // 更新按钮状态
+        this.nextBtn.disabled = false;
+        this.clearAllBtn.disabled = false;
+        this.totalCountEl.textContent = `总人数: ${this.people.length}`;
+      }
+      
+      // 更新整个UI
+      updateUI() {
+        this.updateCurrentPerson();
+        this.updatePeopleList();
+      }
+    }
+    
+    // 初始化应用
+    document.addEventListener('DOMContentLoaded', () => {
+      // 添加页面载入动画
+      setTimeout(() => {
+        document.querySelectorAll('.slide-up').forEach(el => {
+          el.style.opacity = '1';
+        });
+      }, 100);
+      
+      // 初始化运营安排管理器
+      new ShiftManager();
+    });
+  </script>
+</body>
 </html>
